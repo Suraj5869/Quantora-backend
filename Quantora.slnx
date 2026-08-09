@@ -1,1 +1,8 @@
-<Solution />
+<Solution>
+  <Project Path="Quantora.Api/Quantora.Api.csproj" />
+  <Project Path="Quantora.Application/Quantora.Application.csproj" />
+  <Project Path="Quantora.Contracts/Quantora.Contracts.csproj" />
+  <Project Path="Quantora.Domain/Quantora.Domain.csproj" />
+  <Project Path="Quantora.Infrastructure/Quantora.Infrastructure.csproj" />
+  <Project Path="Quantora.Shared/Quantora.Shared.csproj" />
+</Solution>

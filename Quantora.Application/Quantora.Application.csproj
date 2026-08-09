@@ -6,4 +6,29 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Quantora.Contracts\Quantora.Contracts.csproj" />
+    <ProjectReference Include="..\Quantora.Domain\Quantora.Domain.csproj" />
+    <ProjectReference Include="..\Quantora.Shared\Quantora.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Common\Behaviors\" />
+    <Folder Include="Common\Validators\" />
+    <Folder Include="Modules\Dashboard\" />
+    <Folder Include="Modules\Market\" />
+    <Folder Include="Modules\Portfolio\" />
+    <Folder Include="Modules\Broker\" />
+    <Folder Include="Modules\News\" />
+    <Folder Include="Modules\Watchlist\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AutoMapper" Version="16.2.0" />
+    <PackageReference Include="BCrypt.Net-Next" Version="4.2.0" />
+    <PackageReference Include="FluentValidation" Version="12.1.1" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
+    <PackageReference Include="MediatR" Version="14.2.0" />
+  </ItemGroup>
+
 </Project>
