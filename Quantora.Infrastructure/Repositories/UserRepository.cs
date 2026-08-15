@@ -82,7 +82,7 @@ namespace Quantora.Infrastructure.Repositories
             const string sql = """
             SELECT EXISTS(
                 SELECT 1
-                FROM stocksusers
+                FROM stocks.users
                 WHERE LOWER(email) = LOWER(@Email)
             );
             """;
