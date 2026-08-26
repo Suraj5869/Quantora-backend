@@ -18,7 +18,6 @@
     <Folder Include="Modules\Dashboard\" />
     <Folder Include="Modules\Market\" />
     <Folder Include="Modules\Portfolio\" />
-    <Folder Include="Modules\Broker\" />
     <Folder Include="Modules\News\" />
     <Folder Include="Modules\Watchlist\" />
   </ItemGroup>

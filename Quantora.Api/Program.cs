@@ -70,6 +70,17 @@ builder.Services
             };
     });
 
+builder.Services
+    .AddOptions<UpstoxSettings>()
+    .Bind(
+        builder.Configuration.GetSection(
+            UpstoxSettings.SectionName))
+    .Validate(
+        settings =>
+            !string.IsNullOrWhiteSpace(settings.SandboxAccessToken),
+        "Upstox SandboxAccessToken is required.")
+    .ValidateOnStart();
+
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 
 builder.Services.AddCors(options =>

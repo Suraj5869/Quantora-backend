@@ -1,8 +1,10 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Quantora.Application.Modules.Authentication.Interfaces;
+using Quantora.Application.Modules.Broker.Interfaces;
 using Quantora.Application.Modules.Profile.Interfaces;
 using Quantora.Infrastructure.Authentication;
+using Quantora.Infrastructure.Broker.Upstox;
 using Quantora.Infrastructure.Persistence;
 using Quantora.Infrastructure.Repositories;
 using System;
@@ -20,6 +22,8 @@ namespace Quantora.Infrastructure
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
             services.AddScoped<IProfileRepository, ProfileRepository>();
+            services.AddScoped<IBrokerProvider, UpstoxBrokerProvider>();
+            services.AddHttpClient<IUpstoxClient, UpstoxClient>();
             return services;
         }
     }
