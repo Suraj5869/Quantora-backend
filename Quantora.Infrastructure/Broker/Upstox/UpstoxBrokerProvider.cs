@@ -27,5 +27,30 @@ namespace Quantora.Infrastructure.Broker.Upstox
 
             return Task.FromResult(configured);
         }
+
+        public Task<string> GetAuthorizationUrlAsync(
+         string state,
+         CancellationToken cancellationToken = default)
+        {
+            var queryParameters = new Dictionary<string, string>
+            {
+                ["client_id"] = _settings.ClientId,
+                ["redirect_uri"] = _settings.RedirectUri,
+                ["response_type"] = "code",
+                ["state"] = state
+            };
+
+            var queryString = string.Join(
+                "&",
+                queryParameters.Select(
+                    parameter =>
+                        $"{Uri.EscapeDataString(parameter.Key)}=" +
+                        $"{Uri.EscapeDataString(parameter.Value)}"));
+
+            var authorizationUrl =
+                $"https://api.upstox.com/v2/login/authorization/dialog?{queryString}";
+
+            return Task.FromResult(authorizationUrl);
+        }
     }
 }

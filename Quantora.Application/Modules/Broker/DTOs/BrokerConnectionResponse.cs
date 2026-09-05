@@ -14,6 +14,6 @@ namespace Quantora.Application.Modules.Broker.DTOs
 
         public string Environment { get; init; } = string.Empty;
 
-        public DateTimeOffset CheckedAt { get; init; }
+        public DateTimeOffset CheckedAt { get; init; }  
     }
 }

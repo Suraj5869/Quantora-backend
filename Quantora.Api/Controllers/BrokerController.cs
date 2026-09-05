@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Quantora.Application.Modules.Broker.Commands.CancelSandboxOrder;
+using Quantora.Application.Modules.Broker.Commands.ConnectBroker;
 using Quantora.Application.Modules.Broker.Commands.ModifySandboxOrder;
 using Quantora.Application.Modules.Broker.Commands.PlaceSandboxOrder;
 using Quantora.Application.Modules.Broker.DTOs;
@@ -35,6 +36,21 @@ namespace Quantora.Api.Controllers
                 cancellationToken);
 
             return Ok(result);
+        }
+
+        [HttpGet("connect")]
+        public async Task<IActionResult> Connect(
+    CancellationToken cancellationToken)
+        {
+            var authorizationUrl =
+                await _mediator.Send(
+                    new ConnectBrokerCommand(),
+                    cancellationToken);
+
+            return Ok(new
+            {
+                authorizationUrl
+            });
         }
 
         [HttpPost("upstox/sandbox/orders")]

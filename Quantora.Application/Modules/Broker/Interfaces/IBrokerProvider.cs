@@ -12,5 +12,9 @@ namespace Quantora.Application.Modules.Broker.Interfaces
 
         Task<bool> IsConfiguredAsync(
             CancellationToken cancellationToken = default);
+
+        Task<string> GetAuthorizationUrlAsync(
+    string state,
+    CancellationToken cancellationToken);
     }
 }
