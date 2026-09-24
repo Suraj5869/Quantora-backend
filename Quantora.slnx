@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="src/Quantora.Api/Quantora.Api.csproj" />
+  <Project Path="src/Quantora.Application/Quantora.Application.csproj" />
+  <Project Path="src/Quantora.Domain/Quantora.Domain.csproj" />
+  <Project Path="src/Quantora.Infrastructure/Quantora.Infrastructure.csproj" />
+</Solution>

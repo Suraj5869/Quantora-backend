@@ -1,0 +1,38 @@
+@host = https://localhost:7128
+@accessToken = REPLACE_ACCESS_TOKEN
+@refreshToken = REPLACE_REFRESH_TOKEN
+
+### Register
+POST {{host}}/api/v1/auth/register
+Content-Type: application/json
+
+{
+  "fullName": "Quantora Test",
+  "email": "test@example.com",
+  "password": "Password@123"
+}
+
+### Login
+POST {{host}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "Password@123"
+}
+
+### Current user
+GET {{host}}/api/v1/auth/me
+Authorization: Bearer {{accessToken}}
+
+### Profile
+GET {{host}}/api/v1/profile
+Authorization: Bearer {{accessToken}}
+
+### Broker status
+GET {{host}}/api/v1/brokers/upstox
+Authorization: Bearer {{accessToken}}
+
+### Upstox connect URL
+GET {{host}}/api/v1/brokers/upstox/connect
+Authorization: Bearer {{accessToken}}
