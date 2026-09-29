@@ -7,6 +7,9 @@ public interface IBrokerService
     Task<BrokerConnectionResponse> GetConnectionAsync(
         CancellationToken cancellationToken = default);
 
+    Task DisconnectUpstoxAsync(
+    CancellationToken cancellationToken = default);
+
     Task<string> GetAuthorizationUrlAsync(
         CancellationToken cancellationToken = default);
 

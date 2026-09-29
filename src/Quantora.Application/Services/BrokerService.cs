@@ -93,6 +93,15 @@ public sealed class BrokerService : IBrokerService
             $"https://api.upstox.com/v2/login/authorization/dialog?{query}";
     }
 
+    public async Task DisconnectUpstoxAsync(
+    CancellationToken cancellationToken = default)
+    {
+        await _connectionRepository.DisconnectAsync(
+            _currentUserService.UserId,
+            "Upstox",
+            cancellationToken);
+    }
+
     public Task<UpstoxOrderResponse> PlaceSandboxOrderAsync(
         UpstoxPlaceOrderRequest request,
         CancellationToken cancellationToken = default) =>

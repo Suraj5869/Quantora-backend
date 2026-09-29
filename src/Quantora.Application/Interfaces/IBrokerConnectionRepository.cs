@@ -15,5 +15,10 @@ namespace Quantora.Application.Interfaces
         Task UpsertAsync(
             BrokerConnection connection,
             CancellationToken cancellationToken = default);
+
+        Task DisconnectAsync(
+            Guid userId,
+            string broker,
+            CancellationToken cancellationToken = default);
     }
 }

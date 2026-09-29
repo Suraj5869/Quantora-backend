@@ -37,6 +37,16 @@ public sealed class BrokerController : ControllerBase
         return Ok(new { authorizationUrl });
     }
 
+    [HttpDelete("upstox")]
+    public async Task<IActionResult> DisconnectUpstox(
+    CancellationToken cancellationToken)
+    {
+        await _brokerService.DisconnectUpstoxAsync(
+            cancellationToken);
+
+        return NoContent();
+    }
+
     [AllowAnonymous]
     [HttpGet("upstox/callback")]
     public async Task<IActionResult> UpstoxCallback(
@@ -44,13 +54,27 @@ public sealed class BrokerController : ControllerBase
     [FromQuery] string state,
     CancellationToken cancellationToken)
     {
-        var result =
+        var frontendUrl = "http://localhost:5173";
+
+        try
+        {
             await _brokerService.HandleOAuthCallbackAsync(
                 code,
                 state,
                 cancellationToken);
 
-        return Ok(result);
+            return Redirect(
+                $"{frontendUrl}/brokers" +
+                "?broker=upstox&status=connected");
+        }
+        catch
+        {
+            return Redirect(
+                $"{frontendUrl}/brokers" +
+                "?broker=upstox" +
+                "&status=error" +
+                "&reason=Unable%20to%20connect%20Upstox.");
+        }
     }
 
     [HttpPost("upstox/sandbox/orders")]

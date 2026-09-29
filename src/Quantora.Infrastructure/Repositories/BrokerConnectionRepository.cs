@@ -101,5 +101,34 @@ namespace Quantora.Infrastructure.Repositories
                     connection,
                     cancellationToken: cancellationToken));
         }
+
+        public async Task DisconnectAsync(
+    Guid userId,
+    string broker,
+    CancellationToken cancellationToken = default)
+        {
+            const string sql = """
+        UPDATE stocks.broker_connections
+        SET
+            is_active = false,
+            updated_at = @UpdatedAt
+        WHERE user_id = @UserId
+          AND broker = @Broker;
+        """;
+
+            await using var db =
+                (NpgsqlConnection)_connectionFactory.CreateConnection();
+
+            await db.ExecuteAsync(
+                new CommandDefinition(
+                    sql,
+                    new
+                    {
+                        UserId = userId,
+                        Broker = broker,
+                        UpdatedAt = DateTimeOffset.UtcNow
+                    },
+                    cancellationToken: cancellationToken));
+        }
     }
 }
