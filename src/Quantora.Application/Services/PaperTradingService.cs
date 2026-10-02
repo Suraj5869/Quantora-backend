@@ -45,6 +45,7 @@ public sealed class PaperTradingService : IPaperTradingService
                 Quantity = position.Quantity,
                 AveragePrice = position.AveragePrice,
                 LastPrice = lastPrice,
+                StopLossPrice = position.StopLossPrice,
                 MarketValue = decimal.Round(position.Quantity * lastPrice, 2),
                 UnrealizedPnl = decimal.Round((lastPrice - position.AveragePrice) * position.Quantity, 2)
             });
@@ -86,6 +87,16 @@ public sealed class PaperTradingService : IPaperTradingService
         var candles = await _marketData.GetIntradayCandlesAsync(request.InstrumentKey, "minutes", 1, cancellationToken);
         var latest = candles.Candles.OrderByDescending(c => c.Timestamp).FirstOrDefault();
         if (latest is null || latest.Close <= 0) throw new InvalidOperationException("A current market price is unavailable; no paper order was placed.");
+        if (side == "BUY")
+        {
+            if (request.StopLossPrice is null || request.StopLossPrice <= 0 || request.StopLossPrice >= latest.Close)
+                throw new ArgumentException("For BUY orders, set a stop-loss price greater than zero and below the current reference price.");
+            var account = await _repository.GetAccountAsync(userId, cancellationToken);
+            var plannedRisk = decimal.Round((latest.Close - request.StopLossPrice.Value) * request.Quantity, 2, MidpointRounding.AwayFromZero);
+            var riskLimit = decimal.Round(account.PortfolioValue * MaximumRiskPercent / 100m, 2, MidpointRounding.AwayFromZero);
+            if (plannedRisk > riskLimit)
+                throw new ArgumentException($"Order rejected by risk controls: planned loss at stop ({plannedRisk:C}) exceeds the 1% per-order limit ({riskLimit:C}). Reduce quantity or use the risk sizing preview.");
+        }
         return await _repository.PlaceOrderAsync(userId, request, side, latest.Close, cancellationToken);
     }
 
