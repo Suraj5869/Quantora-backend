@@ -22,7 +22,7 @@ public sealed class PaperTradingRepository : IPaperTradingRepository
                    average_price AS AveragePrice, average_price AS LastPrice,
                    quantity * average_price AS MarketValue, 0::numeric AS UnrealizedPnl
             FROM stocks.paper_positions WHERE account_id = @AccountId ORDER BY trading_symbol;
-            """, new { account.Id }, cancellationToken: cancellationToken))).AsList();
+            """, new { AccountId = account.Id }, cancellationToken: cancellationToken))).AsList();
         var orders = (await connection.QueryAsync<PaperOrderDto>(new CommandDefinition("""
             SELECT id AS Id, instrument_key AS InstrumentKey, trading_symbol AS TradingSymbol, side AS Side,
                    quantity AS Quantity, status AS Status, execution_price AS ExecutionPrice,
@@ -46,11 +46,11 @@ public sealed class PaperTradingRepository : IPaperTradingRepository
         await connection.OpenAsync(cancellationToken);
         await using var tx = await connection.BeginTransactionAsync(cancellationToken);
         var account = await EnsureAccountAsync(connection, tx, userId, cancellationToken);
-        await connection.ExecuteAsync(new CommandDefinition("DELETE FROM stocks.paper_positions WHERE account_id=@Id;", new { account.Id }, tx, cancellationToken: cancellationToken));
+        await connection.ExecuteAsync(new CommandDefinition("DELETE FROM stocks.paper_positions WHERE account_id=@Id;", new { Id = account.Id }, tx, cancellationToken: cancellationToken));
         await connection.ExecuteAsync(new CommandDefinition("DELETE FROM stocks.paper_orders WHERE account_id=@Id;", new { account.Id }, tx, cancellationToken: cancellationToken));
         await connection.ExecuteAsync(new CommandDefinition("""
             UPDATE stocks.paper_accounts SET initial_cash=@Cash, available_cash=@Cash, updated_at=now() WHERE id=@Id;
-            """, new { Cash = StartingCash, account.Id }, tx, cancellationToken: cancellationToken));
+            """, new { Cash = StartingCash, Id = account.Id }, tx, cancellationToken: cancellationToken));
         await tx.CommitAsync(cancellationToken);
         return await GetAccountAsync(userId, cancellationToken);
     }
@@ -64,7 +64,7 @@ public sealed class PaperTradingRepository : IPaperTradingRepository
         account = await connection.QuerySingleAsync<AccountRow>(new CommandDefinition("""
             SELECT id AS Id, initial_cash AS InitialCash, available_cash AS AvailableCash
             FROM stocks.paper_accounts WHERE id=@Id FOR UPDATE;
-            """, new { account.Id }, tx, cancellationToken: cancellationToken));
+            """, new { Id = account.Id }, tx, cancellationToken: cancellationToken));
         var value = decimal.Round(price * request.Quantity, 2, MidpointRounding.AwayFromZero);
         decimal realizedPnl = 0;
         string? rejection = null;
@@ -88,7 +88,7 @@ public sealed class PaperTradingRepository : IPaperTradingRepository
                     ON CONFLICT(account_id,instrument_key) DO UPDATE SET quantity=EXCLUDED.quantity,
                       average_price=EXCLUDED.average_price, trading_symbol=EXCLUDED.trading_symbol, updated_at=now();
                     """, new { Id = Guid.NewGuid(), AccountId = account.Id, request.InstrumentKey, request.TradingSymbol, Quantity = newQty, AveragePrice = decimal.Round(avg, 4) }, tx, cancellationToken: cancellationToken));
-                await connection.ExecuteAsync(new CommandDefinition("UPDATE stocks.paper_accounts SET available_cash=available_cash-@Value, updated_at=now() WHERE id=@Id;", new { Value = value, account.Id }, tx, cancellationToken: cancellationToken));
+                await connection.ExecuteAsync(new CommandDefinition("UPDATE stocks.paper_accounts SET available_cash=available_cash-@Value, updated_at=now() WHERE id=@Id;", new { Value = value, Id = account.Id }, tx, cancellationToken: cancellationToken));
             }
             else
             {
