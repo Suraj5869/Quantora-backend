@@ -66,8 +66,8 @@ public sealed class PaperTradingRiskController : ControllerBase
             return BadRequest(new { message = "The calculated ATR stop is not valid for this instrument price." });
 
         var riskBudget = decimal.Round(account.PortfolioValue * riskPercent / 100m, 2);
-        var riskBasedQuantity = decimal.ToInt32(decimal.Floor(riskBudget / stopDistance));
-        var cashBasedQuantity = decimal.ToInt32(decimal.Floor(account.AvailableCash / entryPrice));
+        var riskBasedQuantity = (int)Math.Min(1_000_000m, decimal.Floor(riskBudget / stopDistance));
+        var cashBasedQuantity = (int)Math.Min(1_000_000m, decimal.Floor(account.AvailableCash / entryPrice));
         var quantity = Math.Max(0, Math.Min(riskBasedQuantity, cashBasedQuantity));
         var estimatedCost = decimal.Round(quantity * entryPrice, 2);
         var plannedRisk = decimal.Round(quantity * stopDistance, 2);
