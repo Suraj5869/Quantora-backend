@@ -17,4 +17,11 @@ public interface IMarketDataService
         string unit,
         int interval,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<MarketInstrumentDto>> SearchInstrumentsAsync(
+        string query,
+        CancellationToken cancellationToken = default);
+
+    Task<MarketDiscoveryResponseDto> GetMarketDiscoveryAsync(
+        CancellationToken cancellationToken = default);
 }

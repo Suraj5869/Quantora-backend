@@ -19,4 +19,14 @@ public interface IUpstoxMarketDataClient
         string unit,
         int interval,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<MarketInstrumentDto>> SearchInstrumentsAsync(
+        string accessToken,
+        string query,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<MarketMoverDto>> GetQuotesAsync(
+        string accessToken,
+        IReadOnlyList<MarketInstrumentDto> instruments,
+        CancellationToken cancellationToken = default);
 }
