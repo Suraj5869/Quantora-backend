@@ -29,7 +29,7 @@ public sealed class PaperTradingRepository : IPaperTradingRepository
                    total_value AS TotalValue, realized_pnl AS RealizedPnl, rejection_reason AS RejectionReason,
                    created_at AS CreatedAt, executed_at AS ExecutedAt
             FROM stocks.paper_orders WHERE account_id = @AccountId ORDER BY created_at DESC LIMIT 100;
-            """, new { Id = account.Id }, cancellationToken: cancellationToken))).AsList();
+            """, new { AccountId = account.Id }, cancellationToken: cancellationToken))).AsList();
         var invested = positions.Sum(p => p.MarketValue);
         return new PaperAccountDto
         {
@@ -47,7 +47,7 @@ public sealed class PaperTradingRepository : IPaperTradingRepository
         await using var tx = await connection.BeginTransactionAsync(cancellationToken);
         var account = await EnsureAccountAsync(connection, tx, userId, cancellationToken);
         await connection.ExecuteAsync(new CommandDefinition("DELETE FROM stocks.paper_positions WHERE account_id=@Id;", new { Id = account.Id }, tx, cancellationToken: cancellationToken));
-        await connection.ExecuteAsync(new CommandDefinition("DELETE FROM stocks.paper_orders WHERE account_id=@Id;", new { account.Id }, tx, cancellationToken: cancellationToken));
+        await connection.ExecuteAsync(new CommandDefinition("DELETE FROM stocks.paper_orders WHERE account_id=@Id;", new { Id = account.Id }, tx, cancellationToken: cancellationToken));
         await connection.ExecuteAsync(new CommandDefinition("""
             UPDATE stocks.paper_accounts SET initial_cash=@Cash, available_cash=@Cash, updated_at=now() WHERE id=@Id;
             """, new { Cash = StartingCash, Id = account.Id }, tx, cancellationToken: cancellationToken));
