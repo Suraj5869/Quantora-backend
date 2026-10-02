@@ -12,11 +12,64 @@ public sealed class PaperTradingService : IPaperTradingService
     public PaperTradingService(IPaperTradingRepository repository, IMarketDataService marketData, ICurrentUserService currentUser)
     { _repository = repository; _marketData = marketData; _currentUser = currentUser; }
 
-    public Task<PaperAccountDto> GetAccountAsync(CancellationToken cancellationToken = default) =>
-        _repository.GetAccountAsync(RequireUser(), cancellationToken);
+    public async Task<PaperAccountDto> GetAccountAsync(CancellationToken cancellationToken = default)
+    {
+        var account = await _repository.GetAccountAsync(RequireUser(), cancellationToken);
+        var valuedPositions = new List<PaperPositionDto>(account.Positions.Count);
 
-    public Task<PaperAccountDto> ResetAccountAsync(CancellationToken cancellationToken = default) =>
-        _repository.ResetAccountAsync(RequireUser(), cancellationToken);
+        foreach (var position in account.Positions)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var lastPrice = position.AveragePrice;
+            try
+            {
+                var candles = await _marketData.GetIntradayCandlesAsync(
+                    position.InstrumentKey, "minutes", 1, cancellationToken);
+                var latest = candles.Candles.OrderByDescending(c => c.Timestamp).FirstOrDefault();
+                if (latest is not null && latest.Close > 0)
+                    lastPrice = latest.Close;
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch
+            {
+                // Keep the last known cost basis if market data is temporarily unavailable.
+            }
+
+            valuedPositions.Add(new PaperPositionDto
+            {
+                InstrumentKey = position.InstrumentKey,
+                TradingSymbol = position.TradingSymbol,
+                Quantity = position.Quantity,
+                AveragePrice = position.AveragePrice,
+                LastPrice = lastPrice,
+                MarketValue = decimal.Round(position.Quantity * lastPrice, 2),
+                UnrealizedPnl = decimal.Round((lastPrice - position.AveragePrice) * position.Quantity, 2)
+            });
+        }
+
+        var investedValue = valuedPositions.Sum(p => p.MarketValue);
+        var portfolioValue = account.AvailableCash + investedValue;
+        return new PaperAccountDto
+        {
+            Id = account.Id,
+            InitialCash = account.InitialCash,
+            AvailableCash = account.AvailableCash,
+            InvestedValue = investedValue,
+            PortfolioValue = portfolioValue,
+            TotalPnl = decimal.Round(portfolioValue - account.InitialCash, 2),
+            Positions = valuedPositions,
+            RecentOrders = account.RecentOrders
+        };
+    }
+
+    public async Task<PaperAccountDto> ResetAccountAsync(CancellationToken cancellationToken = default)
+    {
+        await _repository.ResetAccountAsync(RequireUser(), cancellationToken);
+        return await GetAccountAsync(cancellationToken);
+    }
 
     public async Task<PaperOrderDto> PlaceOrderAsync(PlacePaperOrderRequest request, CancellationToken cancellationToken = default)
     {
