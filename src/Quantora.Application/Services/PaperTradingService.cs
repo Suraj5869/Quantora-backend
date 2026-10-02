@@ -6,6 +6,7 @@ namespace Quantora.Application.Services;
 
 public sealed class PaperTradingService : IPaperTradingService
 {
+    private const decimal MaximumRiskPercent = 1m;
     private readonly IPaperTradingRepository _repository;
     private readonly IMarketDataService _marketData;
     private readonly ICurrentUserService _currentUser;
