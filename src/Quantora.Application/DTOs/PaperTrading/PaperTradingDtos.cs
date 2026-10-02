@@ -6,6 +6,7 @@ public sealed class PlacePaperOrderRequest
     public string TradingSymbol { get; init; } = string.Empty;
     public string Side { get; init; } = string.Empty;
     public decimal Quantity { get; init; }
+    public decimal? StopLossPrice { get; init; }
 }
 public sealed class PaperPositionDto
 {
@@ -14,6 +15,7 @@ public sealed class PaperPositionDto
     public decimal Quantity { get; init; }
     public decimal AveragePrice { get; init; }
     public decimal LastPrice { get; init; }
+    public decimal? StopLossPrice { get; init; }
     public decimal MarketValue { get; init; }
     public decimal UnrealizedPnl { get; init; }
 }
