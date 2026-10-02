@@ -10,9 +10,13 @@ namespace Quantora.Api.Controllers;
 public sealed class MarketDataController : ControllerBase
 {
     private readonly IMarketDataService _marketDataService;
+    private readonly ITechnicalAnalysisService _technicalAnalysisService;
 
-    public MarketDataController(IMarketDataService marketDataService) =>
+    public MarketDataController(IMarketDataService marketDataService, ITechnicalAnalysisService technicalAnalysisService)
+    {
         _marketDataService = marketDataService;
+        _technicalAnalysisService = technicalAnalysisService;
+    }
 
     [HttpGet("candles")]
     public async Task<IActionResult> GetHistoricalCandles(
@@ -32,6 +36,31 @@ public sealed class MarketDataController : ControllerBase
         var result = await _marketDataService.GetIntradayCandlesAsync(
             instrumentKey, unit, interval, cancellationToken);
         return Ok(result);
+    }
+
+    [HttpGet("analysis")]
+    public async Task<IActionResult> GetTechnicalAnalysis(
+        [FromQuery] string instrumentKey,
+        [FromQuery] string unit = "minutes",
+        [FromQuery] int interval = 1,
+        [FromQuery] bool intraday = true,
+        [FromQuery] DateOnly? fromDate = null,
+        [FromQuery] DateOnly? toDate = null,
+        CancellationToken cancellationToken = default)
+    {
+        var candles = intraday
+            ? await _marketDataService.GetIntradayCandlesAsync(instrumentKey, unit, interval, cancellationToken)
+            : await GetHistoricalCandlesForAnalysis(instrumentKey, unit, interval, fromDate, toDate, cancellationToken);
+        return Ok(_technicalAnalysisService.Analyze(candles.InstrumentKey, candles.Candles));
+    }
+
+    private Task<Quantora.Application.DTOs.MarketData.MarketCandlesResponseDto> GetHistoricalCandlesForAnalysis(
+        string instrumentKey, string unit, int interval, DateOnly? fromDate, DateOnly? toDate, CancellationToken cancellationToken)
+    {
+        if (!fromDate.HasValue || !toDate.HasValue)
+            throw new ArgumentException("fromDate and toDate are required when intraday=false.");
+        return _marketDataService.GetHistoricalCandlesAsync(
+            instrumentKey, unit, interval, fromDate.Value, toDate.Value, cancellationToken);
     }
 
     [HttpGet("search")]
