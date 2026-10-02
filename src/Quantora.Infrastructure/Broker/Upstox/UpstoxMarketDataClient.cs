@@ -1,4 +1,5 @@
 using System.Globalization;
+using Microsoft.AspNetCore.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using Quantora.Application.DTOs.MarketData;
@@ -93,7 +94,14 @@ public sealed class UpstoxMarketDataClient : IUpstoxMarketDataClient
                     message = errorMessage.GetString() ?? message;
                 }
 
-                throw new UpstoxApiException((int)response.StatusCode, message);
+                // Do not expose an upstream 401 as an application 401: the frontend's
+                // JWT interceptor would otherwise try to refresh the user's Quantora session.
+                var apiStatusCode = response.StatusCode ==
+                    System.Net.HttpStatusCode.Unauthorized
+                    ? StatusCodes.Status502BadGateway
+                    : (int)response.StatusCode;
+
+                throw new UpstoxApiException(apiStatusCode, message);
             }
 
             if (!document.RootElement.TryGetProperty("data", out var data) ||
