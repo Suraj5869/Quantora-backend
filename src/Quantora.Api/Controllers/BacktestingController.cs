@@ -62,10 +62,11 @@ public sealed class BacktestingController : ControllerBase
                 }
             }
 
-            if (qty == 0 && i > 50 && sma20[i] > sma50[i] && sma20[i - 1] <= sma50[i - 1] && atr[i] > 0)
+            if (qty == 0 && i > 50 && sma20[i - 1] > sma50[i - 1] && sma20[i - 2] <= sma50[i - 2] && atr[i - 1] > 0)
             {
-                var proposedEntry = candle.Close;
-                var proposedStop = proposedEntry - (atr[i] * 2m);
+                // Signals use the prior completed candle; fill at the next candle open to avoid look-ahead bias.
+                var proposedEntry = candle.Open;
+                var proposedStop = proposedEntry - (atr[i - 1] * 2m);
                 var riskPerShare = proposedEntry - proposedStop;
                 var riskBudget = cash * riskBudgetPercent;
                 var riskQty = decimal.Floor(riskBudget / riskPerShare);
