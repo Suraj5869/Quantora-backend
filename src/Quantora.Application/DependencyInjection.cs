@@ -11,6 +11,7 @@ public static class DependencyInjection
         services.AddScoped<Services.IProfileService, Services.ProfileService>();
         services.AddScoped<Services.IBrokerService, Services.BrokerService>();
         services.AddScoped<Services.IMarketDataService, Services.MarketDataService>();
+        services.AddScoped<Services.ITechnicalAnalysisService, Services.TechnicalAnalysisService>();
 
         return services;
     }
