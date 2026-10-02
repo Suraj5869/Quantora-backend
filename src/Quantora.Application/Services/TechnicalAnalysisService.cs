@@ -42,15 +42,21 @@ public sealed class TechnicalAnalysisService : ITechnicalAnalysisService
         var macd = new decimal?[data.Length];
         for (var i = 0; i < data.Length; i++)
             if (ema12[i].HasValue && ema26[i].HasValue) macd[i] = ema12[i]!.Value - ema26[i]!.Value;
-        var macdValues = macd.Select(x => x ?? 0m).ToArray();
-        var signalRaw = Ema(macdValues, 9);
+        var firstMacdIndex = Array.FindIndex(macd, x => x.HasValue);
+        var signalRaw = new decimal?[data.Length];
+        if (firstMacdIndex >= 0)
+        {
+            var macdSlice = macd.Skip(firstMacdIndex).Select(x => x!.Value).ToArray();
+            var signalSlice = Ema(macdSlice, 9);
+            for (var i = 0; i < signalSlice.Length; i++) signalRaw[firstMacdIndex + i] = signalSlice[i];
+        }
         var rsi = Rsi(close, 14);
         var atr = Atr(data, 14);
         var volumeAvg = Sma(data.Select(c => (decimal)c.Volume).ToArray(), 20);
         var last = data.Length - 1;
         decimal? lastClose = last >= 0 ? close[last] : null;
         decimal? lastMacd = last >= 0 ? macd[last] : null;
-        decimal? lastSignal = last >= 33 && macd[last].HasValue ? signalRaw[last] : null;
+        decimal? lastSignal = last >= 0 ? signalRaw[last] : null;
         decimal? lastRsi = last >= 0 ? rsi[last] : null;
         decimal? lastAtr = last >= 0 ? atr[last] : null;
         decimal? atrPct = lastAtr.HasValue && lastClose > 0 ? lastAtr.Value / lastClose!.Value * 100m : null;
