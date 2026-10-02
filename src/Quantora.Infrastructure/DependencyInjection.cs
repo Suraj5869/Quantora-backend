@@ -25,6 +25,7 @@ public static class DependencyInjection
         services.AddHttpClient<IUpstoxMarketDataClient, UpstoxMarketDataClient>();
 
         services.AddScoped<IBrokerConnectionRepository, BrokerConnectionRepository>();
+        services.AddScoped<Quantora.Application.Services.IPaperTradingRepository, PaperTradingRepository>();
         services.AddScoped<IBrokerOAuthStateRepository, BrokerOAuthStateRepository>();
         services.AddSingleton<ISecretProtector, AesSecretProtector>();
         return services;
