@@ -22,6 +22,7 @@ public static class DependencyInjection
         services.AddScoped<IProfileRepository, ProfileRepository>();
         services.AddScoped<IBrokerProvider, UpstoxBrokerProvider>();
         services.AddHttpClient<IUpstoxClient, UpstoxClient>();
+        services.AddHttpClient<IUpstoxMarketDataClient, UpstoxMarketDataClient>();
 
         services.AddScoped<IBrokerConnectionRepository, BrokerConnectionRepository>();
         services.AddScoped<IBrokerOAuthStateRepository, BrokerOAuthStateRepository>();
