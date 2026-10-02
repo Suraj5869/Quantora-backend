@@ -64,7 +64,7 @@ public sealed class BacktestingController : ControllerBase
 
             if (qty == 0 && i > 50 && sma20[i - 1] > sma50[i - 1] && sma20[i - 2] <= sma50[i - 2] && atr[i - 1] > 0)
             {
-                // Signals use the prior completed candle; fill at the next candle open to avoid look-ahead bias.
+                // Signal uses the prior completed candle; fill at this candle's open to avoid look-ahead bias.
                 var proposedEntry = candle.Open;
                 var proposedStop = proposedEntry - (atr[i - 1] * 2m);
                 var riskPerShare = proposedEntry - proposedStop;
@@ -115,8 +115,13 @@ public sealed class BacktestingController : ControllerBase
             MaxDrawdownPercent = decimal.Round(maxDrawdown, 2), TradeCount = sellTrades.Length,
             WinRatePercent = sellTrades.Length == 0 ? 0 : decimal.Round((decimal)wins / sellTrades.Length * 100m, 2),
             ProfitFactor = grossLoss == 0 ? (grossProfit > 0 ? null : 0) : decimal.Round(grossProfit / grossLoss, 2),
-            Strategy = "SMA 20/50 crossover; ATR(14) stop at 2x ATR; target at 2R; 1% risk per trade maximum",
-            Assumptions = ["Long-only; daily candles; entries at signal candle close; no brokerage, taxes or slippage included.", "If stop and target are both touched on the same candle, stop-loss is assumed first.", "Historical simulation only; no orders are sent to any broker."],
+            Strategy = $"SMA 20/50 crossover; ATR(14) stop at 2x ATR; target at 2R; {request.RiskPercent:0.##}% risk per trade maximum",
+            Assumptions =
+            [
+                "Long-only; daily candles; signals use completed candles and entries fill at the next candle open.",
+                "If stop and target are both touched on the same candle, stop-loss is assumed first.",
+                "No brokerage, taxes or slippage included; historical simulation only and no orders are sent to any broker."
+            ],
             Trades = trades, EquityCurve = equity
         });
     }
