@@ -19,7 +19,7 @@ public sealed class PaperTradingRepository : IPaperTradingRepository
         var account = await EnsureAccountAsync(connection, null, userId, cancellationToken);
         var positions = (await connection.QueryAsync<PaperPositionDto>(new CommandDefinition("""
             SELECT instrument_key AS InstrumentKey, trading_symbol AS TradingSymbol, quantity AS Quantity,
-                   average_price AS AveragePrice, average_price AS LastPrice,
+                   average_price AS AveragePrice, average_price AS LastPrice, stop_loss_price AS StopLossPrice,
                    quantity * average_price AS MarketValue, 0::numeric AS UnrealizedPnl
             FROM stocks.paper_positions WHERE account_id = @AccountId ORDER BY trading_symbol;
             """, new { AccountId = account.Id }, cancellationToken: cancellationToken))).AsList();
@@ -83,11 +83,12 @@ public sealed class PaperTradingRepository : IPaperTradingRepository
                 var newQty = (existing?.Quantity ?? 0m) + request.Quantity;
                 var avg = (((existing?.Quantity ?? 0m) * (existing?.AveragePrice ?? 0m)) + price * request.Quantity) / newQty;
                 await connection.ExecuteAsync(new CommandDefinition("""
-                    INSERT INTO stocks.paper_positions(id, account_id, instrument_key, trading_symbol, quantity, average_price, updated_at)
-                    VALUES(@Id,@AccountId,@InstrumentKey,@TradingSymbol,@Quantity,@AveragePrice,now())
+                    INSERT INTO stocks.paper_positions(id, account_id, instrument_key, trading_symbol, quantity, average_price, stop_loss_price, updated_at)
+                    VALUES(@Id,@AccountId,@InstrumentKey,@TradingSymbol,@Quantity,@AveragePrice,@StopLossPrice,now())
                     ON CONFLICT(account_id,instrument_key) DO UPDATE SET quantity=EXCLUDED.quantity,
-                      average_price=EXCLUDED.average_price, trading_symbol=EXCLUDED.trading_symbol, updated_at=now();
-                    """, new { Id = Guid.NewGuid(), AccountId = account.Id, request.InstrumentKey, request.TradingSymbol, Quantity = newQty, AveragePrice = decimal.Round(avg, 4) }, tx, cancellationToken: cancellationToken));
+                      average_price=EXCLUDED.average_price, trading_symbol=EXCLUDED.trading_symbol,
+                      stop_loss_price=EXCLUDED.stop_loss_price, updated_at=now();
+                    """, new { Id = Guid.NewGuid(), AccountId = account.Id, request.InstrumentKey, request.TradingSymbol, Quantity = newQty, AveragePrice = decimal.Round(avg, 4), StopLossPrice = request.StopLossPrice }, tx, cancellationToken: cancellationToken));
                 await connection.ExecuteAsync(new CommandDefinition("UPDATE stocks.paper_accounts SET available_cash=available_cash-@Value, updated_at=now() WHERE id=@Id;", new { Value = value, Id = account.Id }, tx, cancellationToken: cancellationToken));
             }
             else
