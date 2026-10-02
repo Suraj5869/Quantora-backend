@@ -77,6 +77,21 @@ public sealed class BacktestingController : ControllerBase
                     qty = proposedQty; entry = proposedEntry; stop = proposedStop; target = proposedEntry + riskPerShare * 2m;
                     cash -= qty * entry;
                     trades.Add(new BacktestTrade(candle.Timestamp, "BUY", qty, entry, 0, "SMA20 crossed above SMA50"));
+
+                    // The entry candle can also hit the protective stop or target after the open.
+                    // Apply the same conservative stop-first rule used for existing positions.
+                    string? entryCandleExit = null;
+                    decimal entryCandleExitPrice = 0;
+                    if (candle.Low <= stop) { entryCandleExit = "Stop loss"; entryCandleExitPrice = stop; }
+                    else if (candle.High >= target) { entryCandleExit = "Target"; entryCandleExitPrice = target; }
+                    if (entryCandleExit is not null)
+                    {
+                        var entryCandlePnl = (entryCandleExitPrice - entry) * qty;
+                        cash += entryCandleExitPrice * qty;
+                        trades.Add(new BacktestTrade(candle.Timestamp, "SELL", qty, entryCandleExitPrice,
+                            decimal.Round(entryCandlePnl, 2), entryCandleExit));
+                        qty = 0;
+                    }
                 }
             }
 
