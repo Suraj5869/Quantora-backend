@@ -73,6 +73,20 @@ public sealed class PaperTradingRepository : IPaperTradingRepository
             WHERE account_id=@AccountId AND instrument_key=@InstrumentKey FOR UPDATE;
             """, new { AccountId = account.Id, request.InstrumentKey }, tx, cancellationToken: cancellationToken));
         if (side == "BUY" && account.AvailableCash < value) rejection = "Insufficient virtual cash for this order.";
+        if (side == "BUY" && request.StopLossPrice is null) rejection = "A stop-loss price is required for BUY orders.";
+        if (side == "BUY" && request.StopLossPrice is not null && request.StopLossPrice >= price) rejection = "Stop-loss price must be below the current execution reference price.";
+        if (side == "BUY" && request.StopLossPrice is not null && request.StopLossPrice > 0)
+        {
+            var investedAtCost = await connection.ExecuteScalarAsync<decimal>(new CommandDefinition("""
+                SELECT COALESCE(SUM(quantity * average_price), 0)
+                FROM stocks.paper_positions WHERE account_id=@AccountId;
+                """, new { AccountId = account.Id }, tx, cancellationToken: cancellationToken));
+            var equityAtCost = account.AvailableCash + investedAtCost;
+            var plannedRisk = decimal.Round((price - request.StopLossPrice.Value) * request.Quantity, 2, MidpointRounding.AwayFromZero);
+            var riskLimit = decimal.Round(equityAtCost * 0.01m, 2, MidpointRounding.AwayFromZero);
+            if (plannedRisk > riskLimit)
+                rejection = $"Order rejected by transactional risk control: planned loss at stop ({plannedRisk:C}) exceeds 1% of estimated equity ({riskLimit:C}).";
+        }
         if (side == "SELL" && (existing is null || existing.Quantity < request.Quantity)) rejection = "Insufficient paper position quantity to sell.";
         var status = rejection is null ? "FILLED" : "REJECTED";
         var id = Guid.NewGuid();
