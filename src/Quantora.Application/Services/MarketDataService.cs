@@ -1,4 +1,6 @@
 using Quantora.Application.Common.Interfaces;
+using Microsoft.Extensions.Options;
+using Quantora.Application.Configurations;
 using Quantora.Application.DTOs.MarketData;
 using Quantora.Application.Interfaces;
 
@@ -10,6 +12,7 @@ public sealed class MarketDataService : IMarketDataService
     private readonly IBrokerConnectionRepository _connectionRepository;
     private readonly ISecretProtector _secretProtector;
     private readonly ICurrentUserService _currentUserService;
+    private readonly UpstoxSettings _upstoxSettings;
 
     private static readonly IReadOnlyList<MarketInstrumentDto> FeaturedUniverse =
     [
@@ -39,12 +42,14 @@ public sealed class MarketDataService : IMarketDataService
         IUpstoxMarketDataClient marketDataClient,
         IBrokerConnectionRepository connectionRepository,
         ISecretProtector secretProtector,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        IOptions<UpstoxSettings> upstoxOptions)
     {
         _marketDataClient = marketDataClient;
         _connectionRepository = connectionRepository;
         _secretProtector = secretProtector;
         _currentUserService = currentUserService;
+        _upstoxSettings = upstoxOptions.Value;
     }
 
     public async Task<MarketCandlesResponseDto> GetHistoricalCandlesAsync(
@@ -121,6 +126,11 @@ public sealed class MarketDataService : IMarketDataService
 
     private async Task<string> GetConnectedAccessTokenAsync(CancellationToken cancellationToken)
     {
+        // Upstox standard OAuth tokens expire daily. Prefer the long-lived Analytics
+        // Token for read-only market-data APIs when configured; never use it for orders.
+        if (!string.IsNullOrWhiteSpace(_upstoxSettings.AnalyticsToken))
+            return _upstoxSettings.AnalyticsToken.Trim();
+
         var connection = await _connectionRepository.GetAsync(
             _currentUserService.UserId, "Upstox", cancellationToken);
         if (connection is null || !connection.IsActive ||
