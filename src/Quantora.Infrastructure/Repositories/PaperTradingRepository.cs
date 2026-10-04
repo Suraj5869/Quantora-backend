@@ -152,7 +152,7 @@ public sealed class PaperTradingRepository : IPaperTradingRepository
             INSERT INTO stocks.paper_orders(id,account_id,instrument_key,trading_symbol,side,quantity,order_type,status,
                 execution_price,total_value,realized_pnl,rejection_reason,created_at,executed_at)
             VALUES(@Id,@AccountId,@InstrumentKey,@TradingSymbol,'SELL',@Quantity,'MARKET','FILLED',
-                @Price,@TotalValue,@RealizedPnl,'Protective stop-loss triggered by paper monitor.',now(),now());
+                @Price,@TotalValue,@RealizedPnl,NULL,now(),now());
             """, new { Id = orderId, AccountId = account.Id, InstrumentKey = position.InstrumentKey,
                 TradingSymbol = position.TradingSymbol, Quantity = position.Quantity, Price = marketPrice,
                 TotalValue = totalValue, RealizedPnl = realizedPnl }, tx, cancellationToken: cancellationToken));
@@ -162,7 +162,6 @@ public sealed class PaperTradingRepository : IPaperTradingRepository
             Id = orderId, InstrumentKey = position.InstrumentKey, TradingSymbol = position.TradingSymbol,
             Side = "SELL", Quantity = position.Quantity, Status = "FILLED", ExecutionPrice = marketPrice,
             TotalValue = totalValue, RealizedPnl = realizedPnl,
-            RejectionReason = "Protective stop-loss triggered by paper monitor.",
             CreatedAt = DateTimeOffset.UtcNow, ExecutedAt = DateTimeOffset.UtcNow
         };
     }
