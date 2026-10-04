@@ -12,6 +12,20 @@ public sealed class PaperTradingRepository : IPaperTradingRepository
     private readonly IDbConnectionFactory _connectionFactory;
     public PaperTradingRepository(IDbConnectionFactory connectionFactory) => _connectionFactory = connectionFactory;
 
+    public async Task<IReadOnlyList<Guid>> GetUsersWithOpenStopLossPositionsAsync(CancellationToken cancellationToken = default)
+    {
+        await using var connection = (NpgsqlConnection)_connectionFactory.CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+        var users = await connection.QueryAsync<Guid>(new CommandDefinition("""
+            SELECT DISTINCT a.user_id
+            FROM stocks.paper_accounts a
+            INNER JOIN stocks.paper_positions p ON p.account_id = a.id
+            WHERE p.stop_loss_price IS NOT NULL AND p.stop_loss_price > 0
+            ORDER BY a.user_id;
+            """, cancellationToken: cancellationToken));
+        return users.AsList();
+    }
+
     public async Task<PaperAccountDto> GetAccountAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         await using var connection = (NpgsqlConnection)_connectionFactory.CreateConnection();
