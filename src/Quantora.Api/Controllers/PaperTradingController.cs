@@ -31,6 +31,10 @@ public sealed class PaperTradingController : ControllerBase
         return Ok(new { checkedAt = DateTimeOffset.UtcNow, triggeredCount = closedOrders.Count, closedOrders });
     }
 
+    [HttpPost("simulate-stop")]
+    public async Task<IActionResult> SimulateStop([FromBody] StopLossSimulationRequest request, CancellationToken cancellationToken) =>
+        Ok(await _service.SimulateStopLossAsync(request, cancellationToken));
+
     [HttpPost("reset")]
     public async Task<IActionResult> Reset(CancellationToken cancellationToken) =>
         Ok(await _service.ResetAccountAsync(cancellationToken));
