@@ -65,6 +65,7 @@ builder.Services
 builder.Services.AddAuthorization();
 
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+builder.Services.AddHostedService<Quantora.Api.Services.PaperStopLossBackgroundService>();
 
 builder.Services.AddCors(options =>
 {
