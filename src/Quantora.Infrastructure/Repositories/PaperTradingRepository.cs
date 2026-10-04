@@ -180,4 +180,5 @@ public sealed class PaperTradingRepository : IPaperTradingRepository
     }
     private sealed class AccountRow { public Guid Id { get; init; } public decimal InitialCash { get; init; } public decimal AvailableCash { get; init; } }
     private sealed class PositionRow { public decimal Quantity { get; init; } public decimal AveragePrice { get; init; } }
+    private sealed class StopPositionRow { public string InstrumentKey { get; init; } = string.Empty; public string TradingSymbol { get; init; } = string.Empty; public decimal Quantity { get; init; } public decimal AveragePrice { get; init; } public decimal? StopLossPrice { get; init; } }
 }
