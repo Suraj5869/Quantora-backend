@@ -101,6 +101,32 @@ public sealed class PaperTradingService : IPaperTradingService
         return await _repository.PlaceOrderAsync(userId, request, side, latest.Close, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<PaperOrderDto>> MonitorStopLossesAsync(CancellationToken cancellationToken = default)
+    {
+        var userId = RequireUser();
+        var account = await _repository.GetAccountAsync(userId, cancellationToken);
+        var triggered = new List<PaperOrderDto>();
+        foreach (var position in account.Positions.Where(p => p.StopLossPrice is not null && p.StopLossPrice > 0))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            try
+            {
+                var candles = await _marketData.GetIntradayCandlesAsync(position.InstrumentKey, "minutes", 1, cancellationToken);
+                var latest = candles.Candles.OrderByDescending(c => c.Timestamp).FirstOrDefault();
+                if (latest is null || latest.Close <= 0 || latest.Close > position.StopLossPrice!.Value)
+                    continue;
+                var closed = await _repository.ClosePositionAtStopAsync(userId, position.InstrumentKey, latest.Close, cancellationToken);
+                if (closed is not null) triggered.Add(closed);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+            catch
+            {
+                // A temporary quote failure must not close a position using stale or fallback prices.
+            }
+        }
+        return triggered;
+    }
+
     private Guid RequireUser() => _currentUser.IsAuthenticated && _currentUser.UserId != Guid.Empty
         ? _currentUser.UserId : throw new UnauthorizedAccessException("An authenticated user is required.");
 }
