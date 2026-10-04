@@ -24,6 +24,13 @@ public sealed class PaperTradingController : ControllerBase
         return Ok(order);
     }
 
+    [HttpPost("monitor-stops")]
+    public async Task<IActionResult> MonitorStops(CancellationToken cancellationToken)
+    {
+        var closedOrders = await _service.MonitorStopLossesAsync(cancellationToken);
+        return Ok(new { checkedAt = DateTimeOffset.UtcNow, triggeredCount = closedOrders.Count, closedOrders });
+    }
+
     [HttpPost("reset")]
     public async Task<IActionResult> Reset(CancellationToken cancellationToken) =>
         Ok(await _service.ResetAccountAsync(cancellationToken));
