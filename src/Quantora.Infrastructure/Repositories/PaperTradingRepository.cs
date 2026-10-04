@@ -115,6 +115,58 @@ public sealed class PaperTradingRepository : IPaperTradingRepository
             CreatedAt = DateTimeOffset.UtcNow, ExecutedAt = status == "FILLED" ? DateTimeOffset.UtcNow : null };
     }
 
+    public async Task<PaperOrderDto?> ClosePositionAtStopAsync(Guid userId, string instrumentKey, decimal marketPrice, CancellationToken cancellationToken = default)
+    {
+        if (marketPrice <= 0) return null;
+        await using var connection = (NpgsqlConnection)_connectionFactory.CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+        await using var tx = await connection.BeginTransactionAsync(cancellationToken);
+        var account = await EnsureAccountAsync(connection, tx, userId, cancellationToken);
+        account = await connection.QuerySingleAsync<AccountRow>(new CommandDefinition("""
+            SELECT id AS Id, initial_cash AS InitialCash, available_cash AS AvailableCash
+            FROM stocks.paper_accounts WHERE id=@Id FOR UPDATE;
+            """, new { Id = account.Id }, tx, cancellationToken: cancellationToken));
+        var position = await connection.QuerySingleOrDefaultAsync<StopPositionRow>(new CommandDefinition("""
+            SELECT instrument_key AS InstrumentKey, trading_symbol AS TradingSymbol, quantity AS Quantity,
+                   average_price AS AveragePrice, stop_loss_price AS StopLossPrice
+            FROM stocks.paper_positions
+            WHERE account_id=@AccountId AND instrument_key=@InstrumentKey
+            FOR UPDATE;
+            """, new { AccountId = account.Id, InstrumentKey = instrumentKey }, tx, cancellationToken: cancellationToken));
+        if (position is null || position.StopLossPrice is null || marketPrice > position.StopLossPrice.Value)
+        {
+            await tx.RollbackAsync(cancellationToken);
+            return null;
+        }
+
+        var orderId = Guid.NewGuid();
+        var totalValue = decimal.Round(marketPrice * position.Quantity, 2, MidpointRounding.AwayFromZero);
+        var realizedPnl = decimal.Round((marketPrice - position.AveragePrice) * position.Quantity, 2, MidpointRounding.AwayFromZero);
+        await connection.ExecuteAsync(new CommandDefinition("""
+            DELETE FROM stocks.paper_positions WHERE account_id=@AccountId AND instrument_key=@InstrumentKey;
+            """, new { AccountId = account.Id, InstrumentKey = instrumentKey }, tx, cancellationToken: cancellationToken));
+        await connection.ExecuteAsync(new CommandDefinition("""
+            UPDATE stocks.paper_accounts SET available_cash=available_cash+@TotalValue, updated_at=now() WHERE id=@AccountId;
+            """, new { TotalValue = totalValue, AccountId = account.Id }, tx, cancellationToken: cancellationToken));
+        await connection.ExecuteAsync(new CommandDefinition("""
+            INSERT INTO stocks.paper_orders(id,account_id,instrument_key,trading_symbol,side,quantity,order_type,status,
+                execution_price,total_value,realized_pnl,rejection_reason,created_at,executed_at)
+            VALUES(@Id,@AccountId,@InstrumentKey,@TradingSymbol,'SELL',@Quantity,'MARKET','FILLED',
+                @Price,@TotalValue,@RealizedPnl,'Protective stop-loss triggered by paper monitor.',now(),now());
+            """, new { Id = orderId, AccountId = account.Id, InstrumentKey = position.InstrumentKey,
+                TradingSymbol = position.TradingSymbol, Quantity = position.Quantity, Price = marketPrice,
+                TotalValue = totalValue, RealizedPnl = realizedPnl }, tx, cancellationToken: cancellationToken));
+        await tx.CommitAsync(cancellationToken);
+        return new PaperOrderDto
+        {
+            Id = orderId, InstrumentKey = position.InstrumentKey, TradingSymbol = position.TradingSymbol,
+            Side = "SELL", Quantity = position.Quantity, Status = "FILLED", ExecutionPrice = marketPrice,
+            TotalValue = totalValue, RealizedPnl = realizedPnl,
+            RejectionReason = "Protective stop-loss triggered by paper monitor.",
+            CreatedAt = DateTimeOffset.UtcNow, ExecutedAt = DateTimeOffset.UtcNow
+        };
+    }
+
     private static async Task<AccountRow> EnsureAccountAsync(NpgsqlConnection connection, NpgsqlTransaction? tx, Guid userId, CancellationToken ct)
     {
         await connection.ExecuteAsync(new CommandDefinition("""
