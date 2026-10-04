@@ -7,4 +7,5 @@ public interface IPaperTradingService
     Task<PaperAccountDto> GetAccountAsync(CancellationToken cancellationToken = default);
     Task<PaperAccountDto> ResetAccountAsync(CancellationToken cancellationToken = default);
     Task<PaperOrderDto> PlaceOrderAsync(PlacePaperOrderRequest request, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<PaperOrderDto>> MonitorStopLossesAsync(CancellationToken cancellationToken = default);
 }
