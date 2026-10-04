@@ -19,6 +19,20 @@ public sealed class PaperPositionDto
     public decimal MarketValue { get; init; }
     public decimal UnrealizedPnl { get; init; }
 }
+public sealed class StopLossSimulationRequest
+{
+    public string InstrumentKey { get; init; } = string.Empty;
+    public decimal SimulatedPrice { get; init; }
+}
+public sealed class StopLossSimulationResult
+{
+    public string InstrumentKey { get; init; } = string.Empty;
+    public string TradingSymbol { get; init; } = string.Empty;
+    public decimal? StopLossPrice { get; init; }
+    public decimal SimulatedPrice { get; init; }
+    public bool WouldTrigger { get; init; }
+    public string Message { get; init; } = string.Empty;
+}
 public sealed class PaperOrderDto
 {
     public Guid Id { get; init; }
