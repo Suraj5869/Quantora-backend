@@ -127,6 +127,35 @@ public sealed class PaperTradingService : IPaperTradingService
         return triggered;
     }
 
+    public async Task<StopLossSimulationResult> SimulateStopLossAsync(StopLossSimulationRequest request, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.InstrumentKey) || request.InstrumentKey.Length > 120 ||
+            !request.InstrumentKey.StartsWith("NSE_EQ|", StringComparison.Ordinal))
+            throw new ArgumentException("Select a valid NSE equity instrument.");
+        if (request.SimulatedPrice <= 0 || request.SimulatedPrice > 100000000m)
+            throw new ArgumentException("Simulated price must be greater than zero and within a valid range.");
+
+        var account = await _repository.GetAccountAsync(RequireUser(), cancellationToken);
+        var position = account.Positions.SingleOrDefault(p => p.InstrumentKey == request.InstrumentKey);
+        if (position is null)
+            throw new ArgumentException("No open paper position exists for this instrument.");
+        if (position.StopLossPrice is null || position.StopLossPrice <= 0)
+            throw new ArgumentException("This position has no configured stop-loss price.");
+
+        var wouldTrigger = request.SimulatedPrice <= position.StopLossPrice.Value;
+        return new StopLossSimulationResult
+        {
+            InstrumentKey = position.InstrumentKey,
+            TradingSymbol = position.TradingSymbol,
+            StopLossPrice = position.StopLossPrice,
+            SimulatedPrice = request.SimulatedPrice,
+            WouldTrigger = wouldTrigger,
+            Message = wouldTrigger
+                ? "Simulation passed: this price would trigger the protective stop. No position was changed."
+                : "Simulation passed: this price is above the stop. No exit would be triggered. No position was changed."
+        };
+    }
+
     private Guid RequireUser() => _currentUser.IsAuthenticated && _currentUser.UserId != Guid.Empty
         ? _currentUser.UserId : throw new UnauthorizedAccessException("An authenticated user is required.");
 }
