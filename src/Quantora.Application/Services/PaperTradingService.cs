@@ -101,9 +101,12 @@ public sealed class PaperTradingService : IPaperTradingService
         return await _repository.PlaceOrderAsync(userId, request, side, latest.Close, cancellationToken);
     }
 
-    public async Task<IReadOnlyList<PaperOrderDto>> MonitorStopLossesAsync(CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<PaperOrderDto>> MonitorStopLossesAsync(CancellationToken cancellationToken = default)
+        => MonitorStopLossesForUserAsync(RequireUser(), cancellationToken);
+
+    public async Task<IReadOnlyList<PaperOrderDto>> MonitorStopLossesForUserAsync(Guid userId, CancellationToken cancellationToken = default)
     {
-        var userId = RequireUser();
+        if (userId == Guid.Empty) throw new ArgumentException("A valid user ID is required.", nameof(userId));
         var account = await _repository.GetAccountAsync(userId, cancellationToken);
         var triggered = new List<PaperOrderDto>();
         foreach (var position in account.Positions.Where(p => p.StopLossPrice is not null && p.StopLossPrice > 0))
