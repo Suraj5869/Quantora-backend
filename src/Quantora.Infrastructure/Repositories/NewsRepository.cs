@@ -49,7 +49,7 @@ public sealed class NewsRepository : INewsRepository
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
             where.Add("(title ILIKE @Search OR summary ILIKE @Search OR source_name ILIKE @Search OR @Search = ANY(tickers))");
-            parameters.Add("Search", "%" + query.Search.Trim().Replace("%", "\%").Replace("_", "\_") + "%");
+            parameters.Add("Search", "%" + query.Search.Trim().Replace("%", "\\%").Replace("_", "\\_") + "%");
         }
         if (!string.IsNullOrWhiteSpace(query.Ticker))
         {
