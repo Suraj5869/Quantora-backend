@@ -4,8 +4,7 @@ namespace Quantora.Application;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddApplication(
-        this IServiceCollection services)
+    public static IServiceCollection AddApplication(this IServiceCollection services)
     {
         services.AddScoped<Services.IAuthService, Services.AuthService>();
         services.AddScoped<Services.IProfileService, Services.ProfileService>();
@@ -13,7 +12,7 @@ public static class DependencyInjection
         services.AddScoped<Services.IMarketDataService, Services.MarketDataService>();
         services.AddScoped<Services.ITechnicalAnalysisService, Services.TechnicalAnalysisService>();
         services.AddScoped<Services.IPaperTradingService, Services.PaperTradingService>();
-
+        services.AddScoped<Services.INewsService, Services.NewsService>();
         return services;
     }
 }
