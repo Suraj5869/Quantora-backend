@@ -21,7 +21,17 @@ public sealed class NewsService : INewsService
             Page = Math.Clamp(query.Page, 1, 1000),
             PageSize = Math.Clamp(query.PageSize, 1, 50)
         };
-        return await _repository.SearchAsync(normalized, cancellationToken);
+
+        var result = await _repository.SearchAsync(normalized, cancellationToken);
+        if (result.TotalCount == 0 && string.IsNullOrWhiteSpace(query.Search) &&
+            string.IsNullOrWhiteSpace(query.Ticker) && string.IsNullOrWhiteSpace(query.Category) &&
+            string.IsNullOrWhiteSpace(query.Sentiment))
+        {
+            var articles = await _provider.FetchLatestAsync(cancellationToken);
+            await _repository.UpsertAsync(articles, cancellationToken);
+            result = await _repository.SearchAsync(normalized, cancellationToken);
+        }
+        return result;
     }
 
     public async Task<NewsRefreshResponse> RefreshAsync(CancellationToken cancellationToken = default)
