@@ -15,15 +15,18 @@ public sealed class PaperTradingAutomationController : ControllerBase
     private readonly IMarketDataService _marketData;
     private readonly ITechnicalAnalysisService _analysis;
     private readonly IPaperTradingService _paperTrading;
+    private readonly INewsService _news;
 
     public PaperTradingAutomationController(
         IMarketDataService marketData,
         ITechnicalAnalysisService analysis,
-        IPaperTradingService paperTrading)
+        IPaperTradingService paperTrading,
+        INewsService news)
     {
         _marketData = marketData;
         _analysis = analysis;
         _paperTrading = paperTrading;
+        _news = news;
     }
 
     /// <summary>
@@ -82,11 +85,18 @@ public sealed class PaperTradingAutomationController : ControllerBase
                 }
 
                 var analysis = _analysis.Analyze(stock.InstrumentKey, candles);
+                var news = await _news.GetAnalysisAsync(stock.TradingSymbol, cancellationToken);
+                var technicalScore = analysis.Trend == "Bullish" && analysis.Momentum == "Positive" ? 70m : 0m;
+                if (analysis.Rsi14 is >= 40m and <= 68m) technicalScore += 20m;
+                if (analysis.Macd.HasValue && analysis.MacdSignal.HasValue && analysis.Macd > analysis.MacdSignal) technicalScore += 10m;
+                var overallScore = decimal.Round(technicalScore * 0.70m + Math.Clamp(news.Score, -100m, 100m) * 0.30m, 1);
                 if (analysis.Trend != "Bullish" || analysis.Momentum != "Positive" ||
-                    analysis.Rsi14 is null || analysis.Rsi14 < 40m || analysis.Rsi14 > 68m)
+                    analysis.Rsi14 is null || analysis.Rsi14 < 40m || analysis.Rsi14 > 68m || news.Score < -20m)
                 {
                     results.Add(new PaperAutomationRunItem(stock.TradingSymbol, stock.InstrumentKey,
-                        "No setup", "Entry rules not met: requires bullish trend, positive momentum and RSI between 40 and 68.", null, null));
+                        "No setup",
+                        $"Technical/news rules not met. Technical score {technicalScore:0.0}, news score {news.Score:0.0}, combined score {overallScore:0.0}. Recent news must not be materially negative.",
+                        null, null));
                     continue;
                 }
 
@@ -142,7 +152,7 @@ public sealed class PaperTradingAutomationController : ControllerBase
                     newTrades++;
                     heldKeys.Add(stock.InstrumentKey);
                     results.Add(new PaperAutomationRunItem(stock.TradingSymbol, stock.InstrumentKey,
-                        "Paper order filled", $"Bought {quantity} share(s) using the 2x ATR stop. Planned risk is capped at 1% of current paper equity, subject to price movement and fill assumptions.",
+                        "Paper order filled", $"Bought {quantity} share(s) using the 2x ATR stop. Technical score {technicalScore:0.0}, news score {news.Score:0.0}, combined score {overallScore:0.0}. News sentiment: {news.Sentiment}. Planned risk is capped at 1% of current paper equity.",
                         order.ExecutionPrice, stopPrice));
                 }
                 else
