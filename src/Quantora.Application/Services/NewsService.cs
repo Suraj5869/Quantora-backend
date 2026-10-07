@@ -16,17 +16,17 @@ public sealed class NewsService : INewsService
 
     public async Task<NewsListResponse> GetNewsAsync(NewsQuery query, CancellationToken cancellationToken = default)
     {
-        var page = Math.Clamp(query.Page, 1, 1000);
-        var pageSize = Math.Clamp(query.PageSize, 1, 50);
-        return await _repository.SearchAsync(query with { Page = page, PageSize = pageSize }, cancellationToken);
+        var normalized = query with
+        {
+            Page = Math.Clamp(query.Page, 1, 1000),
+            PageSize = Math.Clamp(query.PageSize, 1, 50)
+        };
+        return await _repository.SearchAsync(normalized, cancellationToken);
     }
 
     public async Task<NewsRefreshResponse> RefreshAsync(CancellationToken cancellationToken = default)
     {
         var articles = await _provider.FetchLatestAsync(cancellationToken);
-        if (articles.Count == 0)
-            return new NewsRefreshResponse { RefreshedAt = DateTimeOffset.UtcNow };
-
         await _repository.UpsertAsync(articles, cancellationToken);
         return new NewsRefreshResponse
         {
