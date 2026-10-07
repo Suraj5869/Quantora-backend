@@ -23,8 +23,12 @@ public sealed class GoogleNewsRssProvider : INewsProvider
 
     public async Task<IReadOnlyList<NewsArticleDto>> FetchLatestAsync(CancellationToken cancellationToken = default)
     {
+        var companyQueries = Universe
+            .Chunk(5)
+            .Select(batch => string.Join(" OR ", batch.Select(x => $"\\\"{x.Name}\\\" OR {x.Ticker}")))
+            .ToArray();
         var queries = new[] { "Indian stock market", "NSE India stocks", "RBI India economy" }
-            .Concat(Universe.Take(20).Select(x => $"{x.Name} {x.Ticker} India stock"));
+            .Concat(companyQueries);
         var all = new Dictionary<string, NewsArticleDto>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var query in queries)
