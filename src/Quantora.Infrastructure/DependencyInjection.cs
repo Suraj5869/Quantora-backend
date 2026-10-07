@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Quantora.Application.Interfaces;
 using Quantora.Infrastructure.Authentication;
 using Quantora.Infrastructure.Broker.Upstox;
+using Quantora.Infrastructure.News;
 using Quantora.Infrastructure.Persistence;
 using Quantora.Infrastructure.Repositories;
 using Quantora.Infrastructure.Security;
@@ -23,7 +24,13 @@ public static class DependencyInjection
         services.AddScoped<IBrokerProvider, UpstoxBrokerProvider>();
         services.AddHttpClient<IUpstoxClient, UpstoxClient>();
         services.AddHttpClient<IUpstoxMarketDataClient, UpstoxMarketDataClient>();
+        services.AddHttpClient<INewsProvider, GoogleNewsRssProvider>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(15);
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("Quantora/1.0 news-reader");
+        });
 
+        services.AddScoped<INewsRepository, NewsRepository>();
         services.AddScoped<IBrokerConnectionRepository, BrokerConnectionRepository>();
         services.AddScoped<Quantora.Application.Services.IPaperTradingRepository, PaperTradingRepository>();
         services.AddScoped<IBrokerOAuthStateRepository, BrokerOAuthStateRepository>();
