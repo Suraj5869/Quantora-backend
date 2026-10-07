@@ -17,7 +17,7 @@ public sealed class NewsArticleDto
     public IReadOnlyList<string> Tickers { get; init; } = Array.Empty<string>();
 }
 
-public sealed class NewsQuery
+public sealed record NewsQuery
 {
     public string? Search { get; init; }
     public string? Ticker { get; init; }
