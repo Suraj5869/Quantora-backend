@@ -74,7 +74,10 @@ builder.Services.AddCors(options =>
         policy =>
         {
             policy
-                .WithOrigins("http://localhost:5173", "https://quatora-gamma.vercel.app")
+                .WithOrigins(
+                    "http://localhost:5173",
+                    "https://quatora-gamma.vercel.app",
+                    "https://quantora-frontend-eight.vercel.app")
                 .AllowAnyHeader()
                 .AllowAnyMethod();
         });
